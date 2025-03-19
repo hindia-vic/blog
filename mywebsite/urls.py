@@ -25,6 +25,6 @@ sitemaps={
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('blog/',include("blog.urls")),
-    path('sitemap.xml',sitemap,{'sitemaps':sitemaps},name='django.contrib.sitemaps.views.sitemap')
-
+    path('sitemap.xml',sitemap,{'sitemaps':sitemaps},name='django.contrib.sitemaps.views.sitemap'),
+    path('accounts/',include('django.contrib.auth.urls')),
 ]

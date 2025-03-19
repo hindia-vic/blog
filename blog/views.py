@@ -1,13 +1,14 @@
-from django.shortcuts import render
+from django.shortcuts import render,redirect
 from django.core.paginator import Paginator,EmptyPage,PageNotAnInteger
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 from django.contrib.postgres.search import SearchVector,SearchQuery,SearchRank
+from django.contrib.auth import login
 from  django.views.generic import ListView
 from django.core.mail import send_mail
 from taggit.models import Tag
 from django.db.models import Count
-from .forms import EmailPostForm,CommentForm,SearchForm
+from .forms import EmailPostForm,CommentForm,SearchForm,CustomerCreation
 from . models import Post
 
 def post_list(request,tag_slug=None):
@@ -106,3 +107,14 @@ def post_search(request):
                 ).filter(rank__gte=0.2).order_by('-rank')
             )
     return render(request,'blog/post/search.html',{'form':form,'query':query,'results':results})
+
+def register(request):
+    if request.method=='POST':
+        form=CustomerCreation(request.POST)
+        if form.is_valid():
+            user=form.save()
+            login(request,user)
+            return redirect('post_list')
+    else:
+        form=CustomerCreation()
+    return render(request,'registration/register.html',{'form':form})
