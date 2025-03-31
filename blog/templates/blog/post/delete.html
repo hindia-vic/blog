@@ -1,0 +1,31 @@
+{% extends 'blog/base.html' %}
+{% load blog_tags %}
+{% block title %}delete Post{% endblock %}
+{% block content %}
+<h2>Confirm Deletion</h2>
+    
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        <a href="{% url 'blog:post_detail' post.id %}" class="btn btn-primary">
+            Back to Post
+        </a>
+    {% else %}
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Delete "{{ post.title }}"?</h5>
+                <p class="card-text">This action cannot be undone.</p>
+                
+                <form method="post" id="delete-form">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Confirm Delete
+                    </button>
+                    <a href="{{ post.get_absolute_url }}" class="btn btn-secondary">
+                        Cancel
+                    </a>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock content %}

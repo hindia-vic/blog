@@ -3,12 +3,13 @@ from django.core.paginator import Paginator,EmptyPage,PageNotAnInteger
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 from django.contrib.postgres.search import SearchVector,SearchQuery,SearchRank
+from django.contrib import messages
 from django.contrib.auth import login
 from  django.views.generic import ListView
 from django.core.mail import send_mail
 from taggit.models import Tag
 from django.db.models import Count
-from .forms import EmailPostForm,CommentForm,SearchForm,CustomerCreation
+from .forms import EmailPostForm,CommentForm,SearchForm,CustomerCreation,PostForm
 from . models import Post
 
 def post_list(request,tag_slug=None):
@@ -107,6 +108,33 @@ def post_search(request):
                 ).filter(rank__gte=0.2).order_by('-rank')
             )
     return render(request,'blog/post/search.html',{'form':form,'query':query,'results':results})
+
+def post_create(request):
+    form=PostForm()
+    if request.method=='POST':
+        form=PostForm(request.POST,request.FILES)
+        if form.is_valid():
+            post=form.save(commit=False)
+            post.author=request.user
+            post.save()
+            return redirect(post.get_absolute_url())
+    return render(request,'blog/post/create.html',{'form':form})
+
+def delete_post(request,post_id):
+    post=get_object_or_404(Post,id=post_id)
+    post.delete()
+    if not (request.user == post.author or request.user.is_staff):
+        messages.error(request, "You don't have permission to delete this post.", extra_tags='alert-danger')
+        return redirect('blog:post_list')
+    try:
+            post_title = post.title
+            post.delete()
+            messages.success(request, f'Post "{post_title}" was successfully deleted.', extra_tags='alert-success')
+            return redirect('blog:post_list')
+    
+    except Exception as e:
+           messages.error(request,f'Error deleting post: {str(e)}',extra_tags='alert-danger')
+           return render(request, 'blog/post/delete.html', {'post': post,'error': str(e)})
 
 def register(request):
     if request.method=='POST':
