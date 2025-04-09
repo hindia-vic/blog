@@ -1,4 +1,5 @@
 from django.shortcuts import render,redirect
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator,EmptyPage,PageNotAnInteger
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
@@ -120,6 +121,18 @@ def post_create(request):
             return redirect(post.get_absolute_url())
     return render(request,'blog/post/create.html',{'form':form})
 
+def confirm_delete(request, post_id):
+    """Show confirmation page before deletion"""
+    post = get_object_or_404(Post, id=post_id)
+    
+    # Check permissions
+    if not (request.user == post.author or request.user.is_staff):
+        messages.error(request, "You don't have permission to delete this post.")
+        return redirect('blog:post_list')
+
+
+@require_POST
+@login_required
 def delete_post(request,post_id):
     post=get_object_or_404(Post,id=post_id)
     post.delete()
@@ -134,7 +147,7 @@ def delete_post(request,post_id):
     
     except Exception as e:
            messages.error(request,f'Error deleting post: {str(e)}',extra_tags='alert-danger')
-           return render(request, 'blog/post/delete.html', {'post': post,'error': str(e)})
+           return redirect('blog:post_detail', post_id=post.id)
 
 def register(request):
     if request.method=='POST':
