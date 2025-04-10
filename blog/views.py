@@ -124,11 +124,12 @@ def post_create(request):
 def confirm_delete(request, post_id):
     """Show confirmation page before deletion"""
     post = get_object_or_404(Post, id=post_id)
-    
     # Check permissions
     if not (request.user == post.author or request.user.is_staff):
         messages.error(request, "You don't have permission to delete this post.")
         return redirect('blog:post_list')
+    
+    return render(request, 'blog/post/delete.html', {'post': post})
 
 
 @require_POST
