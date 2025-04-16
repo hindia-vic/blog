@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Edit Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white border-bottom-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2 class="h5 mb-0">Edit Profile</h2>
+                        <a href="{% url 'blog:user_profile' %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Avatar Upload -->
+                        <div class="row mb-4">
+                            <div class="col-md-3 text-center">
+                                <div class="mb-3 position-relative">
+                                    <img id="avatar-preview" 
+                                         src="{{ form.instance.avatar.url|default:'/static/images/default-avatar.png' }}" 
+                                         class="rounded-circle border" 
+                                         width="150" 
+                                         height="150" 
+                                         alt="Current avatar">
+                                    <div class="position-absolute bottom-0 end-0">
+                                        <label for="id_avatar" class="btn btn-sm btn-primary rounded-circle cursor-pointer">
+                                            <i class="fas fa-camera"></i>
+                                            <input type="file" name="avatar" id="id_avatar" accept="image/*" class="d-none">
+                                        </label>
+                                    </div>
+                                </div>
+                                {% if form.avatar.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.avatar.errors|join:", " }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-9">
+                                <div class="row g-3">
+                                    <!-- Username (readonly) -->
+                                    <div class="col-md-6">
+                                        <label class="form-label">Username</label>
+                                        <input type="text" class="form-control" value="{{ request.user.username }}" readonly>
+                                    </div>
+                                    
+                                    <!-- Email -->
+                                    <div class="col-md-6">
+                                        <label for="id_email" class="form-label">Email</label>
+                                        <input type="email" 
+                                               name="email" 
+                                               id="id_email" 
+                                               class="form-control {% if form.email.errors %}is-invalid{% endif %}" 
+                                               value="{{ form.email.value|default:request.user.email }}">
+                                        {% if form.email.errors %}
+                                        <div class="invalid-feedback">
+                                            {{ form.email.errors|join:", " }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- First/Last Name -->
+                                    <div class="col-md-6">
+                                        <label for="id_first_name" class="form-label">First Name</label>
+                                        <input type="text" 
+                                               name="first_name" 
+                                               id="id_first_name" 
+                                               class="form-control" 
+                                               value="{{ form.first_name.value|default:request.user.first_name }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="id_last_name" class="form-label">Last Name</label>
+                                        <input type="text" 
+                                               name="last_name" 
+                                               id="id_last_name" 
+                                               class="form-control" 
+                                               value="{{ form.last_name.value|default:request.user.last_name }}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Bio -->
+                        <div class="mb-3">
+                            <label for="id_bio" class="form-label">Bio</label>
+                            <textarea name="bio" 
+                                      id="id_bio" 
+                                      class="form-control {% if form.bio.errors %}is-invalid{% endif %}" 
+                                      rows="3">{{ form.bio.value|default:"" }}</textarea>
+                            {% if form.bio.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.bio.errors|join:", " }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">Tell others about yourself (Markdown supported)</div>
+                        </div>
+                        
+                        <!-- Social Links -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label for="id_website" class="form-label">Website</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-globe"></i></span>
+                                    <input type="url" 
+                                           name="website" 
+                                           id="id_website" 
+                                           class="form-control {% if form.website.errors %}is-invalid{% endif %}" 
+                                           placeholder="https://" 
+                                           value="{{ form.website.value|default:"" }}">
+                                    {% if form.website.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.website.errors|join:", " }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="id_twitter" class="form-label">Twitter</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">@</span>
+                                    <input type="text" 
+                                           name="twitter" 
+                                           id="id_twitter" 
+                                           class="form-control {% if form.twitter.errors %}is-invalid{% endif %}" 
+                                           placeholder="username" 
+                                           value="{{ form.twitter.value|default:"" }}">
+                                    {% if form.twitter.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.twitter.errors|join:", " }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="id_github" class="form-label">GitHub</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">@</span>
+                                    <input type="text" 
+                                           name="github" 
+                                           id="id_github" 
+                                           class="form-control {% if form.github.errors %}is-invalid{% endif %}" 
+                                           placeholder="username" 
+                                           value="{{ form.github.value|default:"" }}">
+                                    {% if form.github.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.github.errors|join:", " }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between border-top pt-3">
+                            <a href="{% url 'password_change' %}" class="btn btn-outline-warning">
+                                <i class="fas fa-key me-1"></i> Change Password
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Preview avatar before upload
+document.getElementById('id_avatar').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('avatar-preview').src = e.target.result;
+        }
+        reader.readAsDataURL(file);
+    }
+});
+
+// Initialize form validation
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('form');
+    Array.prototype.slice.call(forms)
+        .forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+});
+</script>
+{% endblock %}

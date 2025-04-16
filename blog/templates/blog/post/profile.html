@@ -1,0 +1,237 @@
+{% extends "blog/base.html" %}
+
+{% block title %}{{ user.username }}'s Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <!-- Profile Sidebar -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <div class="position-relative mb-3">
+                        <img src="{{ user.profile.avatar.url|default:'/static/images/default-avatar.png' }}"
+                            class="rounded-circle border" width="150" height="150" alt="{{ user.username }}'s avatar">
+                        {% if request.user == user %}
+                        <a href="{% url 'blog:profile_edit' %}"
+                            class="btn btn-sm btn-outline-primary position-absolute bottom-0 end-0 rounded-circle"
+                            style="width: 40px; height: 40px; line-height: 28px;">
+                            <i class="fas fa-pencil-alt"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+
+                    <h2 class="h4">{{ user.username }}</h2>
+
+                    {% if user.get_full_name %}
+                    <p class="text-muted">{{ user.get_full_name }}</p>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-center mb-3">
+                        <div class="px-3 text-center">
+                            <div class="h5 mb-0">{{ user_posts.count }}</div>
+                            <small class="text-muted">Posts</small>
+                        </div>
+                        <div class="px-3 text-center">
+                            <div class="h5 mb-0">{{ user.date_joined|date:"Y" }}</div>
+                            <small class="text-muted">Member since</small>
+                        </div>
+                    </div>
+
+                    {% if user.profile.bio %}
+                    <p class="card-text">{{ user.profile.bio }}</p>
+                    {% endif %}
+
+                    <div class="mt-3">
+                        {% if user.profile.website %}
+                        <a href="{{ user.profile.website }}" target="_blank"
+                            class="btn btn-sm btn-outline-secondary me-1">
+                            <i class="fas fa-globe"></i>
+                        </a>
+                        {% endif %}
+                        {% if user.profile.twitter %}
+                        <a href="https://twitter.com/{{ user.profile.twitter }}" target="_blank"
+                            class="btn btn-sm btn-outline-info me-1">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        {% endif %}
+                        {% if user.profile.github %}
+                        <a href="https://github.com/{{ user.profile.github }}" target="_blank"
+                            class="btn btn-sm btn-outline-dark">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% if request.user == user %}
+            <div class="card shadow-sm mt-3">
+                <div class="card-body">
+                    <h3 class="h6 card-title">Quick Actions</h3>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'blog:post_create' %}" class="btn btn-sm btn-success">
+                            <i class="fas fa-plus me-1"></i> New Post
+                        </a>
+                        <a href="{% url 'blog:reading_list' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-bookmark me-1"></i> Reading List
+                        </a>
+                        <a href="{% url 'password_change' %}" class="btn btn-sm btn-outline-warning">
+                            <i class="fas fa-key me-1"></i> Change Password
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <ul class="nav nav-tabs card-header-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#posts" data-bs-toggle="tab">Posts</a>
+                        </li>
+                        {% if request.user == user %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="#drafts" data-bs-toggle="tab">Drafts</a>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="#comments" data-bs-toggle="tab">Comments</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card-body">
+                    <div class="tab-content">
+                        <!-- Posts Tab -->
+                        <div class="tab-pane fade show active" id="posts">
+                            {% if user_posts %}
+                            <div class="list-group list-group-flush">
+                                {% for post in user_posts %}
+                                <div class="list-group-item border-0 px-0">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <h3 class="h5 mb-0">
+                                            <a href="{{ post.get_absolute_url }}" class="text-decoration-none">
+                                                {{ post.title }}
+                                            </a>
+                                        </h3>
+                                        <span class="badge bg-light text-dark">
+                                            {{ post.publish|date:"M d, Y" }}
+                                        </span>
+                                    </div>
+                                    <p class="text-muted small mb-2">
+                                        {{ post.body|truncatewords:30 }}
+                                    </p>
+                                    <div class="d-flex">
+                                        {% for tag in post.tags.all %}
+                                        <a href="{% url 'blog:post_list_by_tag' tag.slug %}"
+                                            class="badge bg-light text-dark me-1 text-decoration-none">
+                                            #{{ tag.name }}
+                                        </a>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info">
+                                No posts published yet.
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Drafts Tab (only visible to owner) -->
+                        {% if request.user == user %}
+                        <div class="tab-pane fade" id="drafts">
+                            {% if drafts %}
+                            <div class="list-group list-group-flush">
+                                {% for draft in drafts %}
+                                <div class="list-group-item border-0 px-0">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <h3 class="h5 mb-0">
+                                            <a href="{% url 'blog:post_update' draft.id %}"
+                                                class="text-decoration-none">
+                                                {{ draft.title }}
+                                            </a>
+                                        </h3>
+                                        <div>
+                                            <span class="badge bg-warning text-dark me-1">Draft</span>
+                                            <span class="badge bg-light text-dark">
+                                                Last edited: {{ draft.updated|date:"M d, Y" }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex">
+                                        <a href="{% url 'blog:post_update' draft.id %}"
+                                            class="btn btn-sm btn-outline-primary me-2">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                        <form method="post" action="{% url 'blog:post_delete' draft.id %}"
+                                            class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash-alt"></i> Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info">
+                                No drafts saved.
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+
+                        <!-- Comments Tab -->
+                        <div class="tab-pane fade" id="comments">
+                            {% with comments=user.comments.all %}
+                            {% if comments %}
+                            <div class="list-group list-group-flush">
+                                {% for comment in comments %}
+                                <div class="list-group-item border-0 px-0">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <small class="text-muted">
+                                            On <a href="{{ comment.post.get_absolute_url }}">{{ comment.post.title
+                                                }}</a>
+                                        </small>
+                                        <small class="text-muted">
+                                            {{ comment.created|date:"M d, Y" }}
+                                        </small>
+                                    </div>
+                                    <p>{{ comment.body|linebreaks }}</p>
+                                    {% if request.user == user %}
+                                    <div>
+                                        <form method="post" action="{% url 'blog:comment_delete' comment.id %}"
+                                            class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash-alt"></i> Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info">
+                                No comments yet.
+                            </div>
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

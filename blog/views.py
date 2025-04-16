@@ -7,10 +7,10 @@ from django.contrib.postgres.search import SearchVector,SearchQuery,SearchRank
 from django.contrib import messages
 from django.contrib.auth import login
 from  django.views.generic import ListView
-from django.core.mail import send_mail
+from django.core.mail import send_mail,mail_admins
 from taggit.models import Tag
 from django.db.models import Count
-from .forms import EmailPostForm,CommentForm,SearchForm,CustomerCreation,PostForm
+from .forms import EmailPostForm,CommentForm,SearchForm,CustomerCreation,PostForm,ProfileForm,ContactForm
 from . models import Post
 
 def post_list(request,tag_slug=None):
@@ -160,3 +160,65 @@ def register(request):
     else:
         form=CustomerCreation()
     return render(request,'registration/register.html',{'form':form})
+
+def update_post(request,post_id):
+    post = get_object_or_404(Post,id=post_id,author=request.user)
+    if request.method=='POST':
+        form=PostForm(request.POST,request.FILES,instance=post)
+        if form.is_valid():
+            post=form.save(commit=False)
+            post.save()
+            messages.success(request,'Post updated successfully')
+            return redirect(post.get_absolute_url())
+    else:
+        form=PostForm(instance=post)
+        return render(request,'blog/post/update.html',{'form':form,'post':post})
+
+@login_required
+def user_profile(request):
+    user_posts = Post.published.filter(author=request.user)
+    drafts = Post.objects.filter(author=request.user, status=Post.Status.DRAFT)
+    return render(request, 'blog/post/profile.html', {
+        'user': request.user,
+        'posts': user_posts,
+        'drafts': drafts  # Pass drafts separately
+    })
+
+@login_required
+def profile_edit(request):
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, request.FILES, instance=request.user.profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated successfully!')
+            return redirect('blog:user_profile')
+    else:
+        form = ProfileForm(instance=request.user.profile)
+    return render(request, 'blog/user/profile_edit.html', {'form': form})
+
+@login_required
+def post_draft_list(request):
+    drafts = Post.objects.filter(
+        author=request.user, 
+        status=Post.Status.DRAFT
+    ).order_by('-created')
+    return render(request, 'blog/post/draft_list.html', {'drafts': drafts})
+
+def post_archive(request):
+    archive = Post.published.dates('publish', 'month', order='DESC')
+    return render(request, 'blog/post/archive.html', {'archive': archive})
+
+def contact(request):
+    if request.method == 'POST':
+        form = ContactForm(request.POST)
+        if form.is_valid():
+            mail_admins(
+                subject=f"Contact Form: {form.cleaned_data['subject']}",
+                message=form.cleaned_data['message'],
+                fail_silently=False,
+            )
+            messages.success(request, 'Your message has been sent!')
+            return redirect('blog:post_list')
+    else:
+        form = ContactForm()
+    return render(request, 'blog/contact.html', {'form': form})
