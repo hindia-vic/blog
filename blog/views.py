@@ -1,4 +1,5 @@
 from django.shortcuts import render,redirect
+from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator,EmptyPage,PageNotAnInteger
 from django.shortcuts import get_object_or_404
@@ -194,7 +195,7 @@ def profile_edit(request):
             return redirect('blog:user_profile')
     else:
         form = ProfileForm(instance=request.user.profile)
-    return render(request, 'blog/user/profile_edit.html', {'form': form})
+    return render(request, 'blog/post/profile_edit.html', {'form': form})
 
 @login_required
 def post_draft_list(request):
@@ -221,4 +222,17 @@ def contact(request):
             return redirect('blog:post_list')
     else:
         form = ContactForm()
-    return render(request, 'blog/contact.html', {'form': form})
+    return render(request, 'blog/post/contact.html', {'form': form})
+
+
+@login_required
+@require_POST
+def bookmark_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    request.user.profile.bookmarks.add(post)
+    return JsonResponse({'status': 'ok'})
+
+@login_required
+def reading_list(request):
+    bookmarks = request.user.profile.bookmarks.all()
+    return render(request, 'blog/user/reading_list.html', {'bookmarks': bookmarks})
