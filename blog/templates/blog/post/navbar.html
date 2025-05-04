@@ -25,10 +25,19 @@
           <li class="nav-item">
             <a class="nav-link" href="{% url 'blog:contact' %}">Contact_US</a>
           </li>
+          <!-- Add Reading List link here -->
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'blog:reading_list' %}">
+              <i class="fas fa-bookmark"></i> Reading List
+              {% if user.is_authenticated and user.reading_list %}
+              <span class="badge badge-light ml-1">{{ user.reading_list.post_count }}</span>
+              {% endif %}
+            </a>
+          </li>
         {% endif %}
       </ul>
 
-          <!-- Search Form -->
+      <!-- Search Form -->
       <form class="form-inline my-2 my-lg-0 mx-2" action="{% url 'blog:post_search' %}" method="get">
         <div class="input-group">
           <input class="form-control" type="search" name="query" placeholder="Search posts..." aria-label="Search" required>
@@ -45,22 +54,22 @@
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown">
               <i class="fas fa-user-circle"></i> {{ user.username }}
+              {% if user.reading_list %}
+              <span class="badge badge-pill badge-light ml-1">{{ user.reading_list.post_count }}</span>
+              {% endif %}
             </a>
             <div class="dropdown-menu dropdown-menu-right">
-
-              <a class="dropdown-item" href="">
-
               <a class="dropdown-item" href="{% url 'blog:user_profile' %}">
                 <i class="fas fa-user"></i> Profile
+              </a>
+              <a class="dropdown-item" href="{% url 'blog:reading_list' %}">
+                <i class="fas fa-bookmark"></i> Reading List
+                <span class="badge badge-primary float-right">{{ user.reading_list.post_count }}</span>
               </a>
               <a class="dropdown-item" href="">
                 <i class="fas fa-cog"></i> Settings
               </a>
               <div class="dropdown-divider"></div>
-
-              <a class="dropdown-item" href="{% url 'logout' %}">
-                <i class="fas fa-sign-out-alt"></i> Logout
-              </a>
               <form method="post" action="{% url 'logout' %}" class="dropdown-item-form">
                 {% csrf_token %}
                 <button type="submit" class="dropdown-item text-danger" id="logout-button">

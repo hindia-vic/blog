@@ -30,6 +30,22 @@
 {% empty %}
 There are no similar posts yet.
 {% endfor %}
+<!-- In your post_detail.html -->
+{% if user.is_authenticated %}
+<div class="mt-3">
+    <form method="post" action="{% url 'blog:add_to_reading_list' post.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-primary">
+            <i class="fas fa-bookmark"></i>
+            {% if post in user.reading_list.posts.all %}
+                In Your Reading List
+            {% else %}
+                Add to Reading List
+            {% endif %}
+        </button>
+    </form>
+</div>
+{% endif %}
 {% with comments.count as total_comments %}
 <h2>
   {{ total_comments }} comment{{ total_comments|pluralize }}

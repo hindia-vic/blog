@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import post_detail,post_list,post_share,post_comment,post_search,register,post_create,delete_post,confirm_delete,update_post,user_profile,profile_edit,post_draft_list,contact
+from .views import post_detail,post_list,post_share,post_comment,post_search,register,post_create,delete_post,confirm_delete,update_post,user_profile,profile_edit,post_draft_list,contact,reading_list,add_to_reading_list,remove_from_reading_list
 from  .feeds import LatestPostsFeed
 #from . import views
 app_name='blog'
@@ -21,4 +21,7 @@ urlpatterns=[
     path('profile/edit/',profile_edit, name='profile_edit'),
     path('draft/',post_draft_list,name='drafts'),
     path('contact/', contact, name='contact'),
+    path('reading-list/', reading_list, name='reading_list'),
+    path('reading-list/add/<int:post_id>/', add_to_reading_list, name='add_to_reading_list'),
+    path('reading-list/remove/<int:post_id>/', remove_from_reading_list, name='remove_from_reading_list'),
 ]

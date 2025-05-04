@@ -114,7 +114,7 @@
                                            id="id_website" 
                                            class="form-control {% if form.website.errors %}is-invalid{% endif %}" 
                                            placeholder="https://" 
-                                           value="{{ form.website.value|default:"" }}">
+                                           value="{{ form.website.value|default:""}}">
                                     {% if form.website.errors %}
                                     <div class="invalid-feedback">
                                         {{ form.website.errors|join:", " }}

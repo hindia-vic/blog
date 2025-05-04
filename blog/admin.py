@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Post,Comment,Profile
+from .models import Post,Comment,Profile,ReadingList
 from django.utils.html import format_html 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
@@ -72,5 +72,18 @@ class ProfileAdmin(admin.ModelAdmin):
     def deactivate_users(self, request, queryset):
         queryset.update(user__is_active=False)
     deactivate_users.short_description = "Deactivate selected users' profiles"
+
+
+@admin.register(ReadingList)
+class ReadingListAdmin(admin.ModelAdmin):
+    list_display = ['user', 'post_count', 'created_at']
+    list_filter = ['created_at']
+    search_fields = ['user__username']
+    raw_id_fields = ['user']
+    filter_horizontal = ['posts']
+
+    def post_count(self, obj):
+        return obj.post_count
+    post_count.short_description = 'Posts'
 
 # Register your models here.

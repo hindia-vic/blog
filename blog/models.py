@@ -68,6 +68,9 @@ class Post(models.Model):
 
 class Comment(models.Model):
     post=models.ForeignKey(Post,on_delete=models.CASCADE,related_name='comments')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, 
+                             on_delete=models.CASCADE,
+                             null=True)
     name=models.CharField(max_length=80)
     email=models.EmailField()
     body=models.TextField()
@@ -102,4 +105,33 @@ class Profile(models.Model):
 
     @receiver(post_save, sender=User)
     def save_user_profile(sender, instance, **kwargs):
-        instance.profile.save()        
+        instance.profile.save()    
+
+class ReadingList(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='reading_list'
+    )
+    posts = models.ManyToManyField(
+        'Post',
+        related_name='in_reading_lists',
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username}'s Reading List"
+
+    def add_post(self, post):
+        self.posts.add(post)
+        self.save()
+
+    def remove_post(self, post):
+        self.posts.remove(post)
+        self.save()
+
+    @property
+    def post_count(self):
+        return self.posts.count()    

@@ -12,7 +12,7 @@ from django.core.mail import send_mail,mail_admins
 from taggit.models import Tag
 from django.db.models import Count
 from .forms import EmailPostForm,CommentForm,SearchForm,CustomerCreation,PostForm,ProfileForm,ContactForm
-from . models import Post
+from . models import Post,ReadingList,Comment
 
 def post_list(request,tag_slug=None):
     post_list=Post.published.all()
@@ -179,10 +179,12 @@ def update_post(request,post_id):
 def user_profile(request):
     user_posts = Post.published.filter(author=request.user)
     drafts = Post.objects.filter(author=request.user, status=Post.Status.DRAFT)
+    user_comments = Comment.objects.filter(author=request.user).select_related('post')
     return render(request, 'blog/post/profile.html', {
         'user': request.user,
-        'posts': user_posts,
-        'drafts': drafts  # Pass drafts separately
+        'user_posts': user_posts,
+        'drafts': drafts ,
+        'comments':user_comments
     })
 
 @login_required
@@ -234,5 +236,54 @@ def bookmark_post(request, post_id):
 
 @login_required
 def reading_list(request):
-    bookmarks = request.user.profile.bookmarks.all()
-    return render(request, 'blog/user/reading_list.html', {'bookmarks': bookmarks})
+    reading_list = get_object_or_404(ReadingList, user=request.user)
+    posts = reading_list.posts.filter(status=Post.Status.PUBLISHED).select_related('author').prefetch_related('tags')
+    
+    # Add pagination
+    paginator = Paginator(posts, 10)
+    page_number = request.GET.get('page')
+    try:
+        posts = paginator.page(page_number)
+    except PageNotAnInteger:
+        posts = paginator.page(1)
+    except EmptyPage:
+        posts = paginator.page(paginator.num_pages)
+    
+    return render(request, 'blog/post/reading_list.html', {
+        'reading_list': reading_list,
+        'posts': posts,
+        'section': 'reading_list'
+    })
+
+@login_required
+@require_POST
+def add_to_reading_list(request, post_id):
+    post = get_object_or_404(Post, id=post_id, status=Post.Status.PUBLISHED)
+    reading_list, created = ReadingList.objects.get_or_create(user=request.user)
+    
+    if reading_list.posts.filter(id=post.id).exists():
+        messages.warning(request, 'This post is already in your reading list')
+    else:
+        reading_list.posts.add(post)
+        messages.success(request, f'"{post.title}" added to your reading list')
+    
+    if request.headers.get('HTTP_REFERER'):
+        return redirect(request.headers.get('HTTP_REFERER'))
+    return redirect(post.get_absolute_url())
+
+
+@login_required
+@require_POST
+def remove_from_reading_list(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    reading_list = get_object_or_404(ReadingList, user=request.user)
+    
+    if reading_list.posts.filter(id=post.id).exists():
+        reading_list.posts.remove(post)
+        messages.success(request, f'"{post.title}" removed from your reading list')
+    else:
+        messages.warning(request, 'This post was not in your reading list')
+    
+    if request.headers.get('HTTP_REFERER'):
+        return redirect(request.headers.get('HTTP_REFERER'))
+    return redirect('blog:reading_list')
