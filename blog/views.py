@@ -5,6 +5,8 @@ from django.core.paginator import Paginator,EmptyPage,PageNotAnInteger
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 from django.contrib.postgres.search import SearchVector,SearchQuery,SearchRank
+from django.utils import timezone
+from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth import login
 from  django.views.generic import ListView
@@ -30,24 +32,39 @@ def post_list(request,tag_slug=None):
         posts=paginator.page(paginator.num_pages)
     return render(request,'blog/post/list.html',{'posts':posts,'tag':tag})
 
-def post_detail(request,year,month,day,post):
-    post=get_object_or_404(Post,
-                           slug=post,
-                           publish__year=year,
-                           publish__month=month,
-                           publish__day=day,
-                           status=Post.Status.PUBLISHED)
+def post_detail(request, year, month, day, post):
+    # Get the post with all necessary relationships
+    post = get_object_or_404(
+        Post.objects.select_related('author')
+                   .prefetch_related('tags'),
+        slug=post,
+        publish__year=year,
+        publish__month=month,
+        publish__day=day,
+        status=Post.Status.PUBLISHED
+    )
 
-    comments=post.comments.filter(active=True)
-    form=CommentForm()
-    post_tags_ids = post.tags.values_list('id', flat=True)
-    similar_posts = Post.published.filter(
-    tags__in=post_tags_ids
-    ).exclude(id=post.id)
-    similar_posts = similar_posts.annotate(
-    same_tags=Count('tags')
-    ).order_by('-same_tags', '-publish')[:4]
-    return render(request,'blog/post/detail.html',{'post':post,'comments':comments,'form':form,'similar_posts': similar_posts})
+    # Get comments with author information and order by newest first
+    comments = (post.comments.filter(active=True)
+                           .select_related('author')
+                           .order_by('-created'))
+
+    # Get similar posts with optimized query
+    similar_posts = (Post.published
+                       .filter(tags__in=post.tags.values_list('id', flat=True))
+                       .exclude(id=post.id)
+                       .annotate(same_tags=Count('tags'))
+                       .order_by('-same_tags', '-publish')[:4]
+                       .select_related('author'))
+
+    context = {
+        'post': post,
+        'comments': comments,
+        'form': CommentForm(),
+        'similar_posts': similar_posts,
+    }
+    
+    return render(request, 'blog/post/detail.html', context)
 
 def  post_share(request,post_id):
     post=get_object_or_404(Post,id=post_id,status=Post.Status.PUBLISHED)
@@ -88,9 +105,51 @@ def post_comment(request,post_id):
     if form.is_valid():
         comment=form.save(commit=False)
         comment.post=post
+        if request.user.is_authenticated:
+            comment.author = request.user
         comment.save()
-
+        return redirect(post.get_absolute_url())
     return render(request,'blog/post/comment.html',{'post':post,'form':form,'comment':comment})
+
+
+@login_required
+def comment_delete(request, pk):
+    """
+    Deletes a comment after verifying ownership
+    """
+    comment = get_object_or_404(Comment, pk=pk)
+    
+    # Verify the request user is the comment author
+    if request.user != comment.author:
+        messages.error(request, "You can only delete your own comments!")
+        return redirect(comment.post.get_absolute_url())
+    
+    if request.method == 'POST':
+        post_url = comment.post.get_absolute_url()
+        comment.delete()
+        messages.success(request, "Comment deleted successfully!")
+        return redirect(post_url)
+    
+    # If GET request, show confirmation template
+    return render(request, 'blog/post/comment_confirm_delete.html', {
+        'comment': comment
+    })
+
+
+@login_required
+def comment_edit(request, pk):
+    comment = get_object_or_404(Comment, pk=pk, author=request.user)
+    if request.method == 'POST':
+        form = CommentForm(request.POST, instance=comment)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.updated = timezone.now() 
+            comment.save()
+            return redirect(comment.post.get_absolute_url())
+    else:
+        form = CommentForm(instance=comment)
+    return render(request, 'blog/post/comment_edit.html', {'form': form})
+
 
 def post_search(request):
     form=SearchForm()
@@ -111,16 +170,42 @@ def post_search(request):
             )
     return render(request,'blog/post/search.html',{'form':form,'query':query,'results':results})
 
+@login_required
 def post_create(request):
-    form=PostForm()
-    if request.method=='POST':
-        form=PostForm(request.POST,request.FILES)
+    if request.method == 'POST':
+        form = PostForm(request.POST, request.FILES)
         if form.is_valid():
-            post=form.save(commit=False)
-            post.author=request.user
+            post = form.save(commit=False)
+            post.author = request.user
+            
+            # Set default status if not provided
+            if not post.status:
+                post.status = Post.Status.DRAFT
+            
             post.save()
-            return redirect(post.get_absolute_url())
-    return render(request,'blog/post/create.html',{'form':form})
+            
+            # Save many-to-many relationships (like tags) after saving the post
+            form.save_m2m()
+            
+            if post.status == Post.Status.DRAFT:
+                messages.success(request, 'Draft saved successfully!')
+                return redirect('blog:draft_detail', pk=post.pk)  # Redirect to drafts list
+            else:
+                messages.success(request, 'Post published successfully!')
+                return redirect(post.get_absolute_url())
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = PostForm(initial={
+            'status': Post.Status.DRAFT,  # Default to draft
+            'author': request.user  # Pre-set author (though hidden in form)
+        })
+    
+    return render(request, 'blog/post/create.html', {
+        'form': form,
+        'title': 'Create New Post'
+    })
+
 
 def confirm_delete(request, post_id):
     """Show confirmation page before deletion"""
@@ -180,11 +265,13 @@ def user_profile(request):
     user_posts = Post.published.filter(author=request.user)
     drafts = Post.objects.filter(author=request.user, status=Post.Status.DRAFT)
     user_comments = Comment.objects.filter(author=request.user).select_related('post')
+    comment_paginator = Paginator(user_comments, 10)
+    comments_page = comment_paginator.get_page(request.GET.get('comments_page'))
     return render(request, 'blog/post/profile.html', {
         'user': request.user,
         'user_posts': user_posts,
         'drafts': drafts ,
-        'comments':user_comments
+        'comments':comments_page
     })
 
 @login_required
@@ -206,6 +293,32 @@ def post_draft_list(request):
         status=Post.Status.DRAFT
     ).order_by('-created')
     return render(request, 'blog/post/draft_list.html', {'drafts': drafts})
+
+
+@login_required
+def draft_detail(request, pk):
+    """
+    Displays a draft post for preview (only accessible to the author)
+    """
+    draft = get_object_or_404(
+        Post.objects.filter(
+            status=Post.Status.DRAFT,
+            author=request.user
+        ),
+        pk=pk
+    )
+    
+    # Add publish button logic if form submitted
+    if request.method == 'POST' and 'publish' in request.POST:
+        draft.status = Post.Status.PUBLISHED
+        draft.save()
+        return redirect(draft.get_absolute_url())
+    
+    return render(request, 'blog/post/draft_detail.html', {
+        'draft': draft
+    })
+
+    
 
 def post_archive(request):
     archive = Post.published.dates('publish', 'month', order='DESC')

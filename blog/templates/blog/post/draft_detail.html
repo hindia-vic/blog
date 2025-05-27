@@ -1,0 +1,50 @@
+{% extends "blog/base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        This is a draft preview. Only you can see this.
+    </div>
+
+    <article class="card">
+        <div class="card-body">
+            <h1 class="card-title">{{ draft.title }}</h1>
+            
+            {% if draft.image %}
+                <img src="{{ draft.image.url }}" class="img-fluid mb-3" alt="{{ draft.title }}">
+            {% endif %}
+            
+            <div class="content">
+                {{ draft.body|linebreaks }}
+            </div>
+            
+            <div class="mt-4 border-top pt-3">
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" name="publish" class="btn btn-success">
+                        <i class="fas fa-paper-plane"></i> Publish Now
+                    </button>
+                    <a href="{% url 'blog:update' draft.pk %}" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> Continue Editing
+                    </a>
+                    <a href="{% url 'blog:drafts' %}" class="btn btn-secondary">
+                        <i class="fas fa-list"></i> Back to Drafts
+                    </a>
+                </form>
+            </div>
+        </div>
+        <div class="card-footer text-muted">
+            Last edited: {{ draft.updated|date:"F j, Y H:i" }}
+            {% if draft.tags.exists %}
+                <div class="mt-2">
+                    Tags: 
+                    {% for tag in draft.tags.all %}
+                        <span class="badge bg-light text-dark">{{ tag.name }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </article>
+</div>
+{% endblock %}

@@ -13,9 +13,14 @@ class PostAdmin(admin.ModelAdmin):
     show_facets=admin.ShowFacets.ALWAYS
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
-    list_display=['name','email','post','created','active']
+    list_display=['post','get_author','created','active']
     list_filter=['active','created','updated']
-    search_fields=['name','email','body']
+    search_fields=['body','author__username','post__title']
+
+    def get_author(self, obj):
+        return obj.author.username if obj.author else "Anonymous"
+    get_author.short_description = 'Author'
+    get_author.admin_order_field = 'author__username'
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):

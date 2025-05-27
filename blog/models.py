@@ -71,8 +71,6 @@ class Comment(models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, 
                              on_delete=models.CASCADE,
                              null=True)
-    name=models.CharField(max_length=80)
-    email=models.EmailField()
     body=models.TextField()
     created=models.DateTimeField(auto_now_add=True)
     updated=models.DateTimeField(auto_now=True)
@@ -85,7 +83,7 @@ class Comment(models.Model):
 
         ]
     def __str__(self):
-        return f"Comment by {self.name} on {self.post}"
+        return f"Comment by {self.author.username if self.author else self.name}"
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)

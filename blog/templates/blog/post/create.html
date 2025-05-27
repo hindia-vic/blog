@@ -1,11 +1,30 @@
-{% extends 'blog/base.html' %}
-{% load blog_tags %}
-{% block title %}Create Post{% endblock %}
+{% extends "blog/base.html" %}
+{% load crispy_forms_tags %}
+
 {% block content %}
-<h1>Create a new post</h1>
-<form action="" method="post">
-    {% csrf_token %}
-    {{form.as_p}}
-    <button type="submit">Create Post</button>
-</form>
-{% endblock content %}
+<div class="container mt-4">
+    <h2>{{ title }}</h2>
+    
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endif %}
+    
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form|crispy }}
+        
+        <div class="form-group mt-4">
+            <button type="submit" class="btn btn-primary" name="save_and_view">
+                <i class="fas fa-save"></i> Save and View
+            </button>
+            <a href="{% url 'blog:post_list' %}" class="btn btn-outline-danger">
+                <i class="fas fa-times"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

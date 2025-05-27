@@ -14,7 +14,7 @@ class EmailPostForm(forms.Form):
 class CommentForm(forms.ModelForm):
     class Meta:
         model=Comment
-        fields=['name','email','body']
+        fields=['body']
 
 
 class SearchForm(forms.Form):
@@ -31,7 +31,16 @@ class CustomerCreation(UserCreationForm):
 class PostForm(forms.ModelForm):
     class Meta:
         model=Post
-        fields=['title','body','featured_image','status']
+        fields=['title','body','featured_image','status','tags']
+        widgets = {
+            'status': forms.RadioSelect,
+            'body': forms.Textarea(attrs={'rows': 10}),
+        }
+        def __init__(self, *args, **kwargs):
+          super().__init__(*args, **kwargs)
+          # Remove author field from form if it exists
+          if 'author' in self.fields:
+            del self.fields['author']
 
 class ProfileForm(forms.ModelForm):
     email = forms.EmailField(required=True)
