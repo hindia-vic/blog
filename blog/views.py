@@ -66,6 +66,25 @@ def post_detail(request, year, month, day, post):
     
     return render(request, 'blog/post/detail.html', context)
 
+@login_required
+def reply_comment(request,comment_id):
+    parent_comment = get_object_or_404(Comment, id=comment_id)
+    post = parent_comment.post
+    
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            reply = form.save(commit=False)
+            reply.author = request.user
+            reply.post = post
+            reply.parent = parent_comment
+            reply.save()
+            messages.success(request, "Your reply has been posted!")
+            return redirect(post.get_absolute_url() + f'#comment-{reply.id}')
+    
+    # If GET request or invalid form, redirect to post
+    return redirect(post.get_absolute_url())
+
 def  post_share(request,post_id):
     post=get_object_or_404(Post,id=post_id,status=Post.Status.PUBLISHED)
     sent=False

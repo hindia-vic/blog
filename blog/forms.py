@@ -14,7 +14,15 @@ class EmailPostForm(forms.Form):
 class CommentForm(forms.ModelForm):
     class Meta:
         model=Comment
-        fields=['body']
+        fields=['body','parent']
+        widgets = {
+            'parent': forms.HiddenInput(),  # Hide parent field in form
+            'body': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Write your comment here...'
+            }),
+        }
 
 
 class SearchForm(forms.Form):

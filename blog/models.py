@@ -71,6 +71,7 @@ class Comment(models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, 
                              on_delete=models.CASCADE,
                              null=True)
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='replies')
     body=models.TextField()
     created=models.DateTimeField(auto_now_add=True)
     updated=models.DateTimeField(auto_now=True)
@@ -84,6 +85,13 @@ class Comment(models.Model):
         ]
     def __str__(self):
         return f"Comment by {self.author.username if self.author else self.name}"
+    
+    @property
+    def is_reply(self):
+        return self.parent is not None
+
+    def get_replies(self):
+        return self.replies.filter(active=True).select_related('author')
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
