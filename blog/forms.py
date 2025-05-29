@@ -39,16 +39,28 @@ class CustomerCreation(UserCreationForm):
 class PostForm(forms.ModelForm):
     class Meta:
         model=Post
-        fields=['title','body','featured_image','status','tags']
+        fields=['title','body','featured_image','featured_image_caption','status','tags']
         widgets = {
+            'body': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 15,
+                'data-markdown': True
+            }),
             'status': forms.RadioSelect,
-            'body': forms.Textarea(attrs={'rows': 10}),
+            'featured_image_caption': forms.TextInput(attrs={
+                'placeholder': 'Optional image description...'
+            })
+        }
+        help_texts = {
+            'slug': 'Will be auto-generated from title if left blank',
+            'featured_image': 'Recommended aspect ratio: 2:1 (1200x630px)',
         }
         def __init__(self, *args, **kwargs):
           super().__init__(*args, **kwargs)
-          # Remove author field from form if it exists
-          if 'author' in self.fields:
-            del self.fields['author']
+          self.fields['featured_image'].widget.attrs.update({
+            'class': 'form-control',
+            'accept': 'image/*'
+          })
 
 class ProfileForm(forms.ModelForm):
     email = forms.EmailField(required=True)

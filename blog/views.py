@@ -10,9 +10,10 @@ from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth import login
 from  django.views.generic import ListView
+from django.views.decorators.cache import cache_page
 from django.core.mail import send_mail,mail_admins
 from taggit.models import Tag
-from django.db.models import Count
+from django.db.models import Count,F
 from .forms import EmailPostForm,CommentForm,SearchForm,CustomerCreation,PostForm,ProfileForm,ContactForm
 from . models import Post,ReadingList,Comment
 
@@ -32,6 +33,7 @@ def post_list(request,tag_slug=None):
         posts=paginator.page(paginator.num_pages)
     return render(request,'blog/post/list.html',{'posts':posts,'tag':tag})
 
+@cache_page(60 * 15) 
 def post_detail(request, year, month, day, post):
     # Get the post with all necessary relationships
     post = get_object_or_404(
@@ -43,6 +45,12 @@ def post_detail(request, year, month, day, post):
         publish__day=day,
         status=Post.Status.PUBLISHED
     )
+    # Increment view count (excluding author views and duplicate refreshes)
+    if not request.user.is_authenticated or request.user != post.author:
+        # Using F() to avoid race conditions
+        Post.objects.filter(pk=post.pk).update(view_count=F('view_count') + 1)
+        # Refresh the post object to get updated view count
+        post.refresh_from_db()
 
     # Get comments with author information and order by newest first
     comments = (post.comments.filter(active=True)
@@ -62,6 +70,7 @@ def post_detail(request, year, month, day, post):
         'comments': comments,
         'form': CommentForm(),
         'similar_posts': similar_posts,
+        'now': timezone.now(),
     }
     
     return render(request, 'blog/post/detail.html', context)

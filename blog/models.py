@@ -24,10 +24,17 @@ class Post(models.Model):
     slug=models.SlugField(max_length=250,unique_for_date='publish')
     author=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name='blog_post')
     body=models.TextField()
+    view_count = models.PositiveIntegerField(default=0, editable=False)
     featured_image = models.ImageField(
         upload_to='posts/%Y/%m/%d/',
         blank=True,
         null=True,
+        help_text="Featured image for the post (1200x630px recommended)",
+    )
+    featured_image_caption = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Optional caption for the featured image"
     )
     publish=models.DateTimeField(default=timezone.now)
     created=models.DateTimeField(auto_now_add=True)
