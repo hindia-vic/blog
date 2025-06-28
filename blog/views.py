@@ -270,7 +270,7 @@ def register(request):
         if form.is_valid():
             user=form.save()
             login(request,user)
-            return redirect('post_list')
+            return redirect('blog:post_list')
     else:
         form=CustomerCreation()
     return render(request,'registration/register.html',{'form':form})

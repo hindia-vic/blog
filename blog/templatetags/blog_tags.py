@@ -10,6 +10,10 @@ register=template.Library()
 def total_posts():
     return Post.published.count()
 
+@register.simple_tag
+def user_post_count(user):
+    return Post.published.filter(author=user).count()
+
 @register.inclusion_tag('blog/post/latest_post.html')
 def show_latest_posts(count=5):
     latest_posts=Post.published.order_by('-publish')[:count]

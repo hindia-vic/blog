@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'crispy_bootstrap5',
     'taggit',
     'blog',
+    'account',
 ]
 
 MIDDLEWARE = [

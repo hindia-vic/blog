@@ -52,8 +52,8 @@
                             <i class="fas fa-user-circle me-2"></i>My Blog
                         </h2>
                         <p class="card-text">
-                            This is {{ user.username }}'s blog.
-                            I've written {% total_posts %} posts so far.
+                            This is {{ user.username }}'s blog.<br>
+                            A total of {% total_posts %} posts have been published so far.<br>
                         </p>
                         <a href="{% url 'blog:post_feed' %}" class="btn btn-outline-primary btn-sm">
                             <i class="fas fa-rss me-1"></i> Subscribe to my RSS feed
