@@ -18,7 +18,6 @@ from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.sitemaps.views import sitemap
-from django.contrib.auth import views as auth_views
 from django.urls import path,include
 from blog.sitemaps import PostSitemap
 
@@ -27,15 +26,9 @@ sitemaps={
 }
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('accounts/',include('account.urls')),
     path('blog/',include("blog.urls")),
     path('sitemap.xml',sitemap,{'sitemaps':sitemaps},name='django.contrib.sitemaps.views.sitemap'),
-    path('accounts/password-change/',auth_views.PasswordChangeView.as_view(),name='password_change'),
-    path('accounts/password-change/done/',auth_views.PasswordChangeDoneView.as_view(),name='password_change_done'),
-    path('accounts/password-reset/',auth_views.PasswordResetView.as_view(),name='password_reset'),
-    path('accounts/password-reset/done/',auth_views.PasswordResetDoneView.as_view(),name='password_reset_done'),
-    path('accounts/password-reset/<uidb64>/<token>/',auth_views.PasswordResetConfirmView.as_view(),name='password_reset_confirm'),
-    path('accounts/password-reset/complete/',auth_views.PasswordResetCompleteView.as_view(),name='password_reset_complete'),
-    path('accounts/',include('django.contrib.auth.urls')),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
