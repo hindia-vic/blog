@@ -91,7 +91,13 @@ class Comment(models.Model):
 
         ]
     def __str__(self):
-        return f"Comment by {self.author.username if self.author else self.name}"
+        try:
+            author_name = self.author.username if self.author else self.name
+            return f"Comment by {author_name}"
+        except AttributeError:
+            return "Comment (author unknown)"
+    '''def __str__(self):
+        return f"Comment by {self.author.username if self.author else self.name}"'''
     
     @property
     def is_reply(self):
@@ -147,4 +153,21 @@ class ReadingList(models.Model):
 
     @property
     def post_count(self):
-        return self.posts.count()    
+        return self.posts.count()   
+
+class Reaction(models.Model):
+    REACTION_CHOICES = [
+        ('👍', 'Like'),
+        ('❤️', 'Love'),
+        ('😲', 'Wow'),
+        ('😄', 'Happy'),
+        ('😢', 'Sad'),
+    ]
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    reaction = models.CharField(max_length=2, choices=REACTION_CHOICES)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('post', 'user', 'reaction')
+        ordering = ['-created']

@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import post_detail,post_list,post_share,post_comment,post_search,register,post_create,delete_post,confirm_delete,update_post,user_profile,profile_edit,post_draft_list,contact,reading_list,add_to_reading_list,remove_from_reading_list,post_draft_list,draft_detail,comment_delete,comment_edit,reply_comment
+from .views import post_detail,post_list,post_share,post_comment,post_search,register,post_create,delete_post,confirm_delete,update_post,user_profile,profile_edit,post_draft_list,contact,reading_list,add_to_reading_list,remove_from_reading_list,post_draft_list,draft_detail,comment_delete,comment_edit,reply_comment,add_reaction
 from  .feeds import LatestPostsFeed
 #from . import views
 app_name='blog'
@@ -13,6 +13,7 @@ urlpatterns=[
     path('comment/<int:pk>/delete/', comment_delete, name='comment_delete'),
     path('comment/<int:pk>/edit/',comment_edit, name='comment_edit'),
     path('comment/<int:comment_id>/reply/', reply_comment, name='reply_comment'),
+    path('post/<int:post_id>/react/',add_reaction, name='add_reaction'),
     path('feed/', LatestPostsFeed(), name='post_feed'),
     path('search/', post_search, name='post_search'),
     path('create/',post_create,name='post_create'),

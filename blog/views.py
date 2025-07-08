@@ -15,7 +15,7 @@ from django.core.mail import send_mail,mail_admins
 from taggit.models import Tag
 from django.db.models import Count,F
 from .forms import EmailPostForm,CommentForm,SearchForm,CustomerCreation,PostForm,ProfileForm,ContactForm
-from . models import Post,ReadingList,Comment
+from . models import Post,ReadingList,Comment,Reaction
 
 def post_list(request,tag_slug=None):
     post_list=Post.published.all()
@@ -64,6 +64,22 @@ def post_detail(request, year, month, day, post):
                        .annotate(same_tags=Count('tags'))
                        .order_by('-same_tags', '-publish')[:4]
                        .select_related('author'))
+    reaction_choices = Reaction.REACTION_CHOICES
+    reaction_counts = (
+        Reaction.objects.filter(post=post)
+        .values('reaction')
+        .annotate(count=Count('reaction'))
+        .order_by('-count')
+    )
+    reaction_counts = {r['reaction']: r['count'] for r in reaction_counts}
+    
+    # Get user's reactions if authenticated
+    user_reactions = []
+    if request.user.is_authenticated:
+        user_reactions = list(
+            Reaction.objects.filter(post=post, user=request.user)
+            .values_list('reaction', flat=True)
+        )
 
     context = {
         'post': post,
@@ -71,6 +87,9 @@ def post_detail(request, year, month, day, post):
         'form': CommentForm(),
         'similar_posts': similar_posts,
         'now': timezone.now(),
+        'reaction_choices': reaction_choices,
+        'reaction_counts': reaction_counts,
+        'user_reactions': user_reactions,
     }
     
     return render(request, 'blog/post/detail.html', context)
@@ -178,6 +197,44 @@ def comment_edit(request, pk):
         form = CommentForm(instance=comment)
     return render(request, 'blog/post/comment_edit.html', {'form': form})
 
+@require_POST
+@login_required
+def add_reaction(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    reaction_type = request.POST.get('reaction')
+    
+    if reaction_type not in dict(Reaction.REACTION_CHOICES).keys():
+        return JsonResponse({'status': 'error'}, status=400)
+    
+    # Toggle reaction
+    reaction, created = Reaction.objects.get_or_create(
+        post=post,
+        user=request.user,
+        reaction=reaction_type
+    )
+    
+    if not created:
+        reaction.delete()
+    
+    # Get updated counts
+    reaction_counts = (
+        Reaction.objects.filter(post=post)
+        .values('reaction')
+        .annotate(count=Count('reaction'))
+        .order_by('-count')
+    )
+    
+    # Get user's current reactions
+    user_reactions = list(
+        Reaction.objects.filter(post=post, user=request.user)
+        .values_list('reaction', flat=True)
+    )
+    
+    return JsonResponse({
+        'status': 'ok',
+        'reactions': {r['reaction']: r['count'] for r in reaction_counts},
+        'user_reactions': user_reactions
+    })
 
 def post_search(request):
     form=SearchForm()

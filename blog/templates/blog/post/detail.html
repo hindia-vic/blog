@@ -85,6 +85,21 @@
     <div class="view-count text-muted small">
       <i class="fas fa-eye"></i>{% if post.view_count %}{{ post.view_count }}{% else %}0{% endif %} views
     </div>
+    <div class="reactions mt-3">
+    <h6 class="h6">How did this post make you feel?</h6>
+    <div class="d-flex flex-wrap gap-2">
+      {% for reaction_type, reaction_label in reaction_choices %}
+        <form method="post" action="{% url 'blog:add_reaction' post.id %}" class="reaction-form">
+          {% csrf_token %}
+          <input type="hidden" name="reaction" value="{{ reaction_type }}">
+          <button type="submit" class="btn btn-sm {% if user_reactions and reaction_type in user_reactions %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            {{ reaction_type }} 
+            <span class="count">{{ reaction_counts|get_item:reaction_type }}</span>
+          </button>
+        </form>
+      {% endfor %}
+    </div>
+  </div>
   </section>
 
   {% if similar_posts %}
