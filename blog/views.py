@@ -10,7 +10,7 @@ from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth import login
 from  django.views.generic import ListView
-from django.views.decorators.cache import cache_page
+from django.views.decorators.cache import never_cache
 from django.core.mail import send_mail,mail_admins
 from taggit.models import Tag
 from django.db.models import Count,F
@@ -33,7 +33,8 @@ def post_list(request,tag_slug=None):
         posts=paginator.page(paginator.num_pages)
     return render(request,'blog/post/list.html',{'posts':posts,'tag':tag})
 
-@cache_page(60 * 15) 
+#@cache_page(60 * 15) 
+@never_cache
 def post_detail(request, year, month, day, post):
     # Get the post with all necessary relationships
     post = get_object_or_404(
@@ -196,15 +197,17 @@ def comment_edit(request, pk):
     else:
         form = CommentForm(instance=comment)
     return render(request, 'blog/post/comment_edit.html', {'form': form})
-
 @require_POST
 @login_required
 def add_reaction(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     reaction_type = request.POST.get('reaction')
     
-    if reaction_type not in dict(Reaction.REACTION_CHOICES).keys():
-        return JsonResponse({'status': 'error'}, status=400)
+    # Validate reaction type
+    valid_reactions = dict(Reaction.REACTION_CHOICES).keys()
+    if reaction_type not in valid_reactions:
+        messages.error(request, "Invalid reaction type")
+        return redirect(post.get_absolute_url())
     
     # Toggle reaction
     reaction, created = Reaction.objects.get_or_create(
@@ -215,26 +218,13 @@ def add_reaction(request, post_id):
     
     if not created:
         reaction.delete()
+        messages.success(request, f"Removed {reaction_type} reaction")
+    else:
+        messages.success(request, f"Added {reaction_type} reaction")
     
-    # Get updated counts
-    reaction_counts = (
-        Reaction.objects.filter(post=post)
-        .values('reaction')
-        .annotate(count=Count('reaction'))
-        .order_by('-count')
-    )
+    return redirect(post.get_absolute_url())
     
-    # Get user's current reactions
-    user_reactions = list(
-        Reaction.objects.filter(post=post, user=request.user)
-        .values_list('reaction', flat=True)
-    )
     
-    return JsonResponse({
-        'status': 'ok',
-        'reactions': {r['reaction']: r['count'] for r in reaction_counts},
-        'user_reactions': user_reactions
-    })
 
 def post_search(request):
     form=SearchForm()
